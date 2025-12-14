@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>心得帳 - TODO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Antique&family=Zen+Kaku+Gothic+New:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sumi: #1a1a1a;
+      --sumi-light: #2d2d2d;
+      --washi: #f5f1e8;
+      --washi-dark: #e8e2d5;
+      --shu: #c23a3a;
+      --shu-dark: #a02828;
+      --kin: #c9a962;
+      --ai: #264d73;
+      --matcha: #5a7a5a;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Zen Kaku Gothic New', sans-serif;
+      background: var(--washi);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* 和紙テクスチャ */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* 筆のストローク装飾 */
+    .brush-decoration {
+      position: fixed;
+      pointer-events: none;
+      opacity: 0.04;
+      z-index: 0;
+    }
+
+    .brush-top {
+      top: -50px;
+      right: -100px;
+      width: 600px;
+      height: 300px;
+      background: linear-gradient(135deg, var(--sumi) 0%, transparent 70%);
+      border-radius: 0 0 100% 100%;
+      transform: rotate(-15deg);
+    }
+
+    .brush-bottom {
+      bottom: -100px;
+      left: -150px;
+      width: 500px;
+      height: 250px;
+      background: linear-gradient(45deg, var(--shu) 0%, transparent 60%);
+      border-radius: 100% 100% 0 0;
+      transform: rotate(10deg);
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 60px 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ヘッダー */
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      position: relative;
+    }
+
+    .stamp {
+      position: absolute;
+      top: -20px;
+      right: 20%;
+      width: 48px;
+      height: 48px;
+      background: var(--shu);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: rotate(12deg);
+      box-shadow:
+        inset 0 0 0 2px rgba(255,255,255,0.1),
+        2px 2px 8px rgba(0,0,0,0.15);
+      animation: stampAppear 0.6s ease-out 0.3s both;
+    }
+
+    @keyframes stampAppear {
+      0% { transform: rotate(12deg) scale(0); opacity: 0; }
+      50% { transform: rotate(12deg) scale(1.2); }
+      100% { transform: rotate(12deg) scale(1); opacity: 1; }
+    }
+
+    .stamp::before {
+      content: '務';
+      color: white;
+      font-family: 'Zen Antique', serif;
+      font-size: 24px;
+    }
+
+    h1 {
+      font-family: 'Zen Antique', serif;
+      font-size: 3.5rem;
+      font-weight: 400;
+      color: var(--sumi);
+      letter-spacing: 0.3em;
+      margin-bottom: 8px;
+      position: relative;
+      display: inline-block;
+    }
+
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--sumi), transparent);
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--sumi);
+      opacity: 0.5;
+      letter-spacing: 0.5em;
+      margin-top: 16px;
+    }
+
+    /* 入力エリア */
+    .input-area {
+      background: white;
+      border-radius: 2px;
+      padding: 24px;
+      margin-bottom: 40px;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.05),
+        0 20px 40px rgba(0,0,0,0.03);
+      position: relative;
+      border-left: 3px solid var(--shu);
+    }
+
+    .input-area::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--shu), transparent);
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .input-field {
+      flex: 1;
+      position: relative;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 16px 20px;
+      font-family: 'Zen Kaku Gothic New', sans-serif;
+      font-size: 1rem;
+      border: 1px solid var(--washi-dark);
+      border-radius: 2px;
+      background: var(--washi);
+      color: var(--sumi);
+      transition: all 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--sumi);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(26,26,26,0.05);
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--sumi);
+      opacity: 0.3;
+    }
+
+    .add-btn {
+      padding: 16px 32px;
+      background: var(--sumi);
+      color: white;
+      border: none;
+      border-radius: 2px;
+      font-family: 'Zen Kaku Gothic New', sans-serif;
+      font-size: 0.9rem;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .add-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: var(--shu);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.5s ease;
+    }
+
+    .add-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(26,26,26,0.2);
+    }
+
+    .add-btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .add-btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* フィルター */
+    .filters {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+
+    .filter-btn {
+      padding: 8px 20px;
+      background: transparent;
+      border: 1px solid transparent;
+      font-family: 'Zen Kaku Gothic New', sans-serif;
+      font-size: 0.85rem;
+      color: var(--sumi);
+      opacity: 0.5;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .filter-btn:hover {
+      opacity: 0.8;
+    }
+
+    .filter-btn.active {
+      opacity: 1;
+      background: white;
+      border-color: var(--washi-dark);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    /* タスクリスト */
+    .todo-list {
+      list-style: none;
+    }
+
+    .todo-item {
+      background: white;
+      margin-bottom: 12px;
+      border-radius: 2px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      animation: slideIn 0.4s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .todo-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--ai);
+      transform: scaleY(0);
+      transition: transform 0.3s ease;
+    }
+
+    .todo-item:hover::before {
+      transform: scaleY(1);
+    }
+
+    .todo-item:hover {
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    .todo-item.completed {
+      opacity: 0.5;
+    }
+
+    .todo-item.completed .todo-text {
+      text-decoration: line-through;
+      color: var(--sumi);
+      opacity: 0.5;
+    }
+
+    .todo-item.removing {
+      animation: slideOut 0.4s ease-out forwards;
+    }
+
+    @keyframes slideOut {
+      to {
+        opacity: 0;
+        transform: translateX(20px);
+        height: 0;
+        padding: 0;
+        margin: 0;
+      }
+    }
+
+    /* チェックボックス */
+    .checkbox {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--washi-dark);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .checkbox:hover {
+      border-color: var(--matcha);
+    }
+
+    .checkbox.checked {
+      background: var(--matcha);
+      border-color: var(--matcha);
+    }
+
+    .checkbox.checked::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 7px;
+      width: 5px;
+      height: 9px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+      animation: checkmark 0.2s ease-out;
+    }
+
+    @keyframes checkmark {
+      from {
+        transform: rotate(45deg) scale(0);
+      }
+      to {
+        transform: rotate(45deg) scale(1);
+      }
+    }
+
+    .todo-text {
+      flex: 1;
+      font-size: 1rem;
+      color: var(--sumi);
+      line-height: 1.5;
+    }
+
+    .delete-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      color: var(--sumi);
+      opacity: 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .todo-item:hover .delete-btn {
+      opacity: 0.3;
+    }
+
+    .delete-btn:hover {
+      opacity: 1 !important;
+      background: var(--shu);
+      color: white;
+      transform: rotate(90deg);
+    }
+
+    .delete-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* 統計 */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 48px;
+      padding-top: 32px;
+      border-top: 1px solid var(--washi-dark);
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-family: 'Zen Antique', serif;
+      font-size: 2.5rem;
+      color: var(--sumi);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--sumi);
+      opacity: 0.5;
+      letter-spacing: 0.2em;
+      margin-top: 8px;
+    }
+
+    /* 空状態 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--sumi);
+      opacity: 0.4;
+    }
+
+    .empty-state svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+
+    .empty-state p {
+      font-size: 0.95rem;
+      letter-spacing: 0.1em;
+    }
+
+    /* レスポンシブ */
+    @media (max-width: 600px) {
+      .container {
+        padding: 40px 16px;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        letter-spacing: 0.2em;
+      }
+
+      .input-wrapper {
+        flex-direction: column;
+      }
+
+      .add-btn {
+        width: 100%;
+      }
+
+      .stats {
+        gap: 24px;
+      }
+
+      .stamp {
+        right: 10%;
+        width: 40px;
+        height: 40px;
+      }
+
+      .stamp::before {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="brush-decoration brush-top"></div>
+  <div class="brush-decoration brush-bottom"></div>
+
+  <div class="container">
+    <header>
+      <div class="stamp"></div>
+      <h1>心得帳</h1>
+      <p class="subtitle">TODO LIST</p>
+    </header>
+
+    <div class="input-area">
+      <div class="input-wrapper">
+        <div class="input-field">
+          <input
+            type="text"
+            id="todoInput"
+            placeholder="新しいタスクを入力..."
+            autocomplete="off"
+          >
+        </div>
+        <button class="add-btn" onclick="addTodo()">
+          <span>追加</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">すべて</button>
+      <button class="filter-btn" data-filter="active">未完了</button>
+      <button class="filter-btn" data-filter="completed">完了</button>
+    </div>
+
+    <ul class="todo-list" id="todoList"></ul>
+
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-number" id="totalCount">0</div>
+        <div class="stat-label">総数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="activeCount">0</div>
+        <div class="stat-label">未完了</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="completedCount">0</div>
+        <div class="stat-label">完了</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // データ管理
+    let todos = JSON.parse(localStorage.getItem('kokoroecho-todos')) || [];
+    let currentFilter = 'all';
+
+    // 保存
+    function saveTodos() {
+      localStorage.setItem('kokoroecho-todos', JSON.stringify(todos));
+    }
+
+    // タスク追加
+    function addTodo() {
+      const input = document.getElementById('todoInput');
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      const todo = {
+        id: Date.now(),
+        text: text,
+        completed: false,
+        createdAt: new Date().toISOString()
+      };
+
+      todos.unshift(todo);
+      saveTodos();
+      renderTodos();
+      input.value = '';
+      input.focus();
+    }
+
+    // タスク削除
+    function deleteTodo(id) {
+      const item = document.querySelector(`[data-id="${id}"]`);
+      if (item) {
+        item.classList.add('removing');
+        setTimeout(() => {
+          todos = todos.filter(t => t.id !== id);
+          saveTodos();
+          renderTodos();
+        }, 400);
+      }
+    }
+
+    // 完了切り替え
+    function toggleTodo(id) {
+      todos = todos.map(t =>
+        t.id === id ? { ...t, completed: !t.completed } : t
+      );
+      saveTodos();
+      renderTodos();
+    }
+
+    // 描画
+    function renderTodos() {
+      const list = document.getElementById('todoList');
+
+      const filtered = todos.filter(todo => {
+        if (currentFilter === 'active') return !todo.completed;
+        if (currentFilter === 'completed') return todo.completed;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+              <path d="M8 12l2 2 4-4"/>
+            </svg>
+            <p>${currentFilter === 'completed' ? '完了したタスクはありません' :
+                 currentFilter === 'active' ? 'すべてのタスクが完了しています' :
+                 'タスクを追加してください'}</p>
+          </div>
+        `;
+      } else {
+        list.innerHTML = filtered.map(todo => `
+          <li class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
+            <div class="checkbox ${todo.completed ? 'checked' : ''}"
+                 onclick="toggleTodo(${todo.id})"></div>
+            <span class="todo-text">${escapeHtml(todo.text)}</span>
+            <button class="delete-btn" onclick="deleteTodo(${todo.id})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </li>
+        `).join('');
+      }
+
+      updateStats();
+    }
+
+    // 統計更新
+    function updateStats() {
+      const total = todos.length;
+      const completed = todos.filter(t => t.completed).length;
+      const active = total - completed;
+
+      document.getElementById('totalCount').textContent = total;
+      document.getElementById('activeCount').textContent = active;
+      document.getElementById('completedCount').textContent = completed;
+    }
+
+    // HTMLエスケープ
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // フィルターボタン
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderTodos();
+      });
+    });
+
+    // Enterキーで追加
+    document.getElementById('todoInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addTodo();
+    });
+
+    // 初期描画
+    renderTodos();
+  </script>
+</body>
+</html>
